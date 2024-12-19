@@ -39,25 +39,40 @@ class _HomePageState extends State<HomePage> {
       isLoading = true;
     });
 
-    final response = await http.get(Uri.parse('http://192.168.1.35:5000/get-quiz/$difficulty'));
-    if (response.statusCode == 200) {
+    try {
+      final response = await http.get(Uri.parse('http://192.168.1.35:5000/get-quiz/$difficulty'));
+      if (response.statusCode == 200) {
+        setState(() {
+          questions = json.decode(response.body)['questions'];
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
       setState(() {
-        questions = json.decode(response.body)['questions'];
         isLoading = false;
       });
+      print('Erreur: $e');
     }
   }
 
   Future<void> submitAnswer(String answer, String correctAnswer) async {
-    final response = await http.post(
-      Uri.parse('http://192.168.1.35:5000/quiz-result/'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({'user_id': userId, 'user_answer': answer, 'correct_answer': correctAnswer}),
-    );
-    if (response.statusCode == 200) {
-      setState(() {
-        userProgress = json.decode(response.body)['user_progress'];
-      });
+    try {
+      final response = await http.post(
+        Uri.parse('http://192.168.1.35:5000/quiz-result/'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'user_id': userId, 'user_answer': answer, 'correct_answer': correctAnswer}),
+      );
+      if (response.statusCode == 200) {
+        setState(() {
+          userProgress = json.decode(response.body)['user_progress'];
+        });
+      }
+    } catch (e) {
+      print('Erreur: $e');
     }
   }
 
@@ -84,23 +99,26 @@ class _HomePageState extends State<HomePage> {
                     itemCount: questions.length,
                     itemBuilder: (context, index) {
                       final question = questions[index];
-                      return Card(
-                        elevation: 5,
-                        margin: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[100],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 question['question'],
-                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                               ),
                               SizedBox(height: 10),
                               ElevatedButton(
                                 onPressed: () =>
                                     submitAnswer('Sample Answer', question['correct_answer']),
-                                child: Text('Answer'),
+                                child: Text('Submit Answer'),
                               ),
                             ],
                           ),
