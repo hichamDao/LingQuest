@@ -31,7 +31,7 @@ class _HomePageState extends State<HomePage> {
   // Envoi des réponses de l'utilisateur
   Future<void> submitQuizAnswer(String userAnswer, String correctAnswer) async {
     final response = await http.post(
-      Uri.parse('http://127.0.0.1:5000/quiz-result/'),
+      Uri.parse('http://192.168.1.35:5000/quiz-result/'),
       headers: {"Content-Type": "application/json"},
       body: json.encode({
         'user_id': userId,
