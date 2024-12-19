@@ -10,7 +10,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Jeu Pirate Langue',
+      title: 'TreasureLing',
       theme: ThemeData(primarySwatch: Colors.blue),
       home: HomePage(),
     );
@@ -23,45 +23,55 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String userId = 'user123';  // Identifiant de l'utilisateur (statique pour l'exemple)
+  String userId = 'user123'; // Identifiant de l'utilisateur
   int level = 1;
   int treasurePieces = 0;
   List<dynamic> leaderboard = [];
 
-  // Envoi des réponses de l'utilisateur
+  // Envoi des réponses du quiz
   Future<void> submitQuizAnswer(String userAnswer, String correctAnswer) async {
-    final response = await http.post(
-      
-    Uri.parse('http://192.168.1.35:5000/quiz-result/'),
-      headers: {"Content-Type": "application/json"},
-      body: json.encode({
-        'user_id': userId,
-        'user_answer': userAnswer,
-        'correct_answer': correctAnswer,
-      }),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse('http://192.168.1.35:5000/quiz-result/'),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          'user_id': userId,
+          'user_answer': userAnswer,
+          'correct_answer': correctAnswer,
+        }),
+      );
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      setState(() {
-        level = data['user_progress']['level'];
-        treasurePieces = data['user_progress']['treasure_pieces'];
-      });
-    } else {
-      print('Erreur de la requête');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          level = data['user_progress']['level'];
+          treasurePieces = data['user_progress']['treasure_pieces'];
+        });
+      } else {
+        print('Erreur de la requête : ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Erreur : $e');
     }
   }
 
-  // Récupérer le leaderboard
+  // Récupération du leaderboard
   Future<void> fetchLeaderboard() async {
-    final response = await http.get(Uri.parse('http://192.168.1.35:5000/leaderboard'));
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      setState(() {
-        leaderboard = data['leaderboard'];
-      });
-    } else {
-      print('Erreur lors du chargement du leaderboard');
+    try {
+      final response = await http.get(
+        Uri.parse('http://192.168.1.35:5000/leaderboard'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          leaderboard = data['leaderboard'];
+        });
+      } else {
+        print('Erreur lors du chargement du leaderboard');
+      }
+    } catch (e) {
+      print('Erreur : $e');
     }
   }
 
@@ -74,13 +84,13 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Jeu Pirate Langue')),
+      appBar: AppBar(title: Text('TreasureLing')),
       body: Column(
         children: <Widget>[
           // Afficher la progression
           Text('Niveau: $level, Pièces du trésor: $treasurePieces'),
 
-          // Simuler une question
+          // Bouton pour simuler une réponse au quiz
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: ElevatedButton(
