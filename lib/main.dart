@@ -31,7 +31,8 @@ class _HomePageState extends State<HomePage> {
   // Envoi des réponses de l'utilisateur
   Future<void> submitQuizAnswer(String userAnswer, String correctAnswer) async {
     final response = await http.post(
-      Uri.parse('http://192.168.1.35:5000/quiz-result/'),
+      
+    Uri.parse('http://192.168.1.35:5000/quiz-result/'),
       headers: {"Content-Type": "application/json"},
       body: json.encode({
         'user_id': userId,
@@ -53,7 +54,7 @@ class _HomePageState extends State<HomePage> {
 
   // Récupérer le leaderboard
   Future<void> fetchLeaderboard() async {
-    final response = await http.get(Uri.parse('http://127.0.0.1:5000/leaderboard'));
+    final response = await http.get(Uri.parse('http://192.168.1.35:5000/leaderboard'));
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       setState(() {
@@ -78,7 +79,7 @@ class _HomePageState extends State<HomePage> {
         children: <Widget>[
           // Afficher la progression
           Text('Niveau: $level, Pièces du trésor: $treasurePieces'),
-          
+
           // Simuler une question
           Padding(
             padding: const EdgeInsets.all(8.0),
@@ -87,7 +88,7 @@ class _HomePageState extends State<HomePage> {
               child: Text('Répondre à la question'),
             ),
           ),
-          
+
           // Afficher le leaderboard
           Expanded(
             child: ListView.builder(
