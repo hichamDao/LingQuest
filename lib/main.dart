@@ -10,7 +10,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'TreasureLing',
+      title: 'Pirate Language Adventure',
       theme: ThemeData(primarySwatch: Colors.blue),
       home: HomePage(),
     );
@@ -23,91 +23,56 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String userId = 'user123'; // Identifiant de l'utilisateur
-  int level = 1;
-  int treasurePieces = 0;
-  List<dynamic> leaderboard = [];
-
-  // Envoi des réponses du quiz
-  Future<void> submitQuizAnswer(String userAnswer, String correctAnswer) async {
-    try {
-      final response = await http.post(
-        Uri.parse('http://192.168.1.35:5000/quiz-result/'),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode({
-          'user_id': userId,
-          'user_answer': userAnswer,
-          'correct_answer': correctAnswer,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        setState(() {
-          level = data['user_progress']['level'];
-          treasurePieces = data['user_progress']['treasure_pieces'];
-        });
-      } else {
-        print('Erreur de la requête : ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Erreur : $e');
-    }
-  }
-
-  // Récupération du leaderboard
-  Future<void> fetchLeaderboard() async {
-    try {
-      final response = await http.get(
-        Uri.parse('http://192.168.1.35:5000/leaderboard'),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        setState(() {
-          leaderboard = data['leaderboard'];
-        });
-      } else {
-        print('Erreur lors du chargement du leaderboard');
-      }
-    } catch (e) {
-      print('Erreur : $e');
-    }
-  }
+  String userId = 'user123';
+  Map<String, dynamic> userProgress = {'level': 1, 'treasure_pieces': 0};
+  List<dynamic> questions = [];
 
   @override
   void initState() {
     super.initState();
-    fetchLeaderboard();
+    fetchQuiz('easy');
+  }
+
+  Future<void> fetchQuiz(String difficulty) async {
+    final response = await http.get(Uri.parse('http://192.168.1.35:5000/get-quiz/$difficulty'));
+    if (response.statusCode == 200) {
+      setState(() {
+        questions = json.decode(response.body)['questions'];
+      });
+    }
+  }
+
+  Future<void> submitAnswer(String answer, String correctAnswer) async {
+    final response = await http.post(
+      Uri.parse('http://192.168.1.35:5000/quiz-result/'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'user_id': userId, 'user_answer': answer, 'correct_answer': correctAnswer}),
+    );
+    if (response.statusCode == 200) {
+      setState(() {
+        userProgress = json.decode(response.body)['user_progress'];
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('TreasureLing')),
+      appBar: AppBar(title: Text('Pirate Language Adventure')),
       body: Column(
-        children: <Widget>[
-          // Afficher la progression
-          Text('Niveau: $level, Pièces du trésor: $treasurePieces'),
-
-          // Bouton pour simuler une réponse au quiz
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-              onPressed: () => submitQuizAnswer('Bonjour', 'Bonjour'),
-              child: Text('Répondre à la question'),
-            ),
-          ),
-
-          // Afficher le leaderboard
+        children: [
+          Text('Level: ${userProgress['level']} | Treasure Pieces: ${userProgress['treasure_pieces']}'),
           Expanded(
             child: ListView.builder(
-              itemCount: leaderboard.length,
+              itemCount: questions.length,
               itemBuilder: (context, index) {
-                final user = leaderboard[index];
+                final question = questions[index];
                 return ListTile(
-                  title: Text(user['user_id']),
-                  subtitle: Text('Niveau: ${user['level']} | Pièces: ${user['treasure_pieces']}'),
+                  title: Text(question['question']),
+                  trailing: ElevatedButton(
+                    onPressed: () => submitAnswer('Sample Answer', question['correct_answer']),
+                    child: Text('Answer'),
+                  ),
                 );
               },
             ),
