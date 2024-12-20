@@ -3,9 +3,21 @@ FROM gitpod/workspace-full
 
 # Pré-configurer l'installation pour ne pas demander d'interaction
 ENV DEBIAN_FRONTEND=noninteractive
+ENV DEBCONF_NONINTERACTIVE_SEEN=true
 
-# Mise à jour des paquets et installation des dépendances nécessaires pour IntelliJ IDEA et VNC
-RUN sudo apt-get update && sudo apt-get install -y \
+# Ajouter les réponses nécessaires pour éviter les invites interactives
+RUN echo "keyboard-configuration keyboard-configuration/xkb-keymap select us" | sudo debconf-set-selections \
+    && echo "keyboard-configuration keyboard-configuration/layout select English (US)" | sudo debconf-set-selections \
+    && echo "keyboard-configuration keyboard-configuration/modelcode string pc105" | sudo debconf-set-selections \
+    && echo "keyboard-configuration keyboard-configuration/variant select English (US)" | sudo debconf-set-selections \
+    && echo "keyboard-configuration keyboard-configuration/optionscode string" | sudo debconf-set-selections \
+    && echo "keyboard-configuration keyboard-configuration/unsupported_config_options note" | sudo debconf-set-selections \
+    && echo "keyboard-configuration keyboard-configuration/store_defaults_in_debconf_db boolean true" | sudo debconf-set-selections \
+    && echo "keyboard-configuration keyboard-configuration/unsupported_config_layout boolean true" | sudo debconf-set-selections \
+    && echo "keyboard-configuration keyboard-configuration/unsupported_options boolean true" | sudo debconf-set-selections
+
+# Mise à jour des paquets et installation sans interaction
+RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends \
     locales \
     keyboard-configuration \
     xfce4 \
@@ -16,29 +28,20 @@ RUN sudo apt-get update && sudo apt-get install -y \
     dbus-x11 \
     && sudo apt-get clean
 
-# Pré-configurer les paramètres régionaux et clavier pour éviter l'interaction
-RUN echo "en_US.UTF-8 UTF-8" | sudo tee -a /etc/locale.gen
-RUN sudo locale-gen
-RUN sudo update-locale LANG=en_US.UTF-8 LC_CTYPE="en_US.UTF-8"
+# Configurer la langue et les locales (évite l'interaction)
+RUN sudo locale-gen en_US.UTF-8 && sudo update-locale LANG=en_US.UTF-8
 
-# Pré-configurer les paramètres du clavier sans interaction
-RUN echo "keyboard-configuration keyboard-configuration/modelcode 00" | sudo debconf-set-selections
-RUN echo "keyboard-configuration keyboard-configuration/layoutcode us" | sudo debconf-set-selections
-RUN echo "keyboard-configuration keyboard-configuration/variantcode us" | sudo debconf-set-selections
-RUN echo "keyboard-configuration keyboard-configuration/unsupported_options boolean false" | sudo debconf-set-selections
-RUN sudo dpkg-reconfigure -f noninteractive keyboard-configuration
-
-# Télécharger et installer IntelliJ IDEA
+# Télécharger IntelliJ IDEA
 RUN wget https://download.jetbrains.com/idea/ideaIC-2023.2.1.tar.gz -O /tmp/idea.tar.gz \
     && tar -xzf /tmp/idea.tar.gz -C /opt \
     && rm /tmp/idea.tar.gz
 
-# Configurer le mot de passe du serveur VNC (à remplacer par un mot de passe sécurisé)
-RUN echo "vncpassword" | vncpasswd -f > ~/.vnc/passwd
-RUN chmod 600 ~/.vnc/passwd
+# Configurer le mot de passe pour le serveur VNC
+RUN echo "vncpassword" | vncpasswd -f > ~/.vnc/passwd \
+    && chmod 600 ~/.vnc/passwd
 
-# Exposer le port VNC
+# Exposer le port pour VNC
 EXPOSE 5901
 
-# Lancer le serveur VNC et IntelliJ IDEA
+# Commande pour lancer le serveur VNC et IntelliJ IDEA
 CMD ["sh", "-c", "vncserver :1 -geometry 1280x1024 -depth 24 && /opt/idea-IC-*/bin/idea.sh && tail -f /dev/null"]
