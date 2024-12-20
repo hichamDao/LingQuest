@@ -4,7 +4,7 @@ FROM gitpod/workspace-full
 # Pré-configurer l'installation pour ne pas demander d'interaction
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Mettre à jour les paquets et installer les dépendances nécessaires pour IntelliJ IDEA et VNC
+# Mise à jour des paquets et installation des dépendances nécessaires pour IntelliJ IDEA et VNC
 RUN sudo apt-get update && sudo apt-get install -y \
     locales \
     keyboard-configuration \
@@ -16,15 +16,16 @@ RUN sudo apt-get update && sudo apt-get install -y \
     dbus-x11 \
     && sudo apt-get clean
 
-# Configurer la langue et les paramètres régionaux (pour éviter l'interaction)
-RUN sudo locale-gen en_US.UTF-8 \
-    && sudo update-locale LANG=en_US.UTF-8 LC_CTYPE="en_US.UTF-8"
+# Pré-configurer les paramètres régionaux et clavier pour éviter l'interaction
+RUN echo "en_US.UTF-8 UTF-8" | sudo tee -a /etc/locale.gen
+RUN sudo locale-gen
+RUN sudo update-locale LANG=en_US.UTF-8 LC_CTYPE="en_US.UTF-8"
 
-# Pré-configurer les paramètres du clavier pour éviter l'interaction
-RUN echo "keyboard-configuration keyboard-configuration/modelcode 00" | debconf-set-selections
-RUN echo "keyboard-configuration keyboard-configuration/layoutcode us" | debconf-set-selections
-RUN echo "keyboard-configuration keyboard-configuration/variantcode   us" | debconf-set-selections
-RUN echo "keyboard-configuration keyboard-configuration/unsupported_options boolean false" | debconf-set-selections
+# Pré-configurer les paramètres du clavier sans interaction
+RUN echo "keyboard-configuration keyboard-configuration/modelcode 00" | sudo debconf-set-selections
+RUN echo "keyboard-configuration keyboard-configuration/layoutcode us" | sudo debconf-set-selections
+RUN echo "keyboard-configuration keyboard-configuration/variantcode us" | sudo debconf-set-selections
+RUN echo "keyboard-configuration keyboard-configuration/unsupported_options boolean false" | sudo debconf-set-selections
 RUN sudo dpkg-reconfigure -f noninteractive keyboard-configuration
 
 # Télécharger et installer IntelliJ IDEA
