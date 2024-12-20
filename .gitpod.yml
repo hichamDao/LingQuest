@@ -1,8 +1,6 @@
+image:
+  file: .gitpod.Dockerfile
+
 tasks:
-  - init: |
-      git clone https://github.com/flutter/flutter.git -b stable ~/flutter
-      echo "export PATH=\$PATH:~/flutter/bin" >> ~/.bashrc
-      flutter doctor
-ports:
-  - port: 8080
-    onOpen: open-preview
+  - init: echo "Gitpod VNC Setup"
+  - command: vncserver :1 -geometry 1280x1024 -depth 24 && /opt/idea-IC-*/bin/idea.sh
