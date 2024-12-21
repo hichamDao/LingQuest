@@ -1,9 +1,5 @@
 FROM gitpod/workspace-full:latest
 
-# Nettoyer le cache APT et mise à jour complète
-RUN rm -rf /var/lib/apt/lists/* && \
-    apt-get update && \
-    apt-get upgrade -y
 
 # Installer les outils nécessaires
 RUN apt-get install -y wget curl git unzip zip libglu1-mesa || \
