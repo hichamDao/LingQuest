@@ -7,7 +7,7 @@ RUN sudo apt-get install -y wget curl git unzip zip libglu1-mesa || \
 
 # Installer Google Chrome
 RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    dpkg -i google-chrome-stable_current_amd64.deb || apt-get install -f -y && \
+    dpkg -i google-chrome-stable_current_amd64.deb || sudo  apt-get install -f -y && \
     rm google-chrome-stable_current_amd64.deb
 
 # Configurer la variable CHROME_EXECUTABLE pour Flutter
