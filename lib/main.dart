@@ -27,6 +27,7 @@ class _HomePageState extends State<HomePage> {
   Map<String, dynamic> userProgress = {'level': 1, 'treasure_pieces': 0};
   List<dynamic> questions = [];
   bool isLoading = true;
+  bool hasError = false;
 
   @override
   void initState() {
@@ -37,23 +38,39 @@ class _HomePageState extends State<HomePage> {
   Future<void> fetchQuiz(String difficulty) async {
     setState(() {
       isLoading = true;
+      hasError = false;
     });
 
     try {
       final response = await http.get(Uri.parse('http://192.168.1.35:5000/get-quiz/$difficulty'));
       if (response.statusCode == 200) {
-        setState(() {
-          questions = json.decode(response.body)['questions'];
-          isLoading = false;
-        });
+        final data = json.decode(response.body);
+        final List<dynamic> fetchedQuestions = data['questions'] ?? [];
+        if (fetchedQuestions.isEmpty) {
+          setState(() {
+            questions = [];
+            isLoading = false;
+            hasError = false;
+          });
+          print('Aucune question disponible.');
+        } else {
+          setState(() {
+            questions = fetchedQuestions;
+            isLoading = false;
+            hasError = false;
+          });
+        }
       } else {
         setState(() {
           isLoading = false;
+          hasError = true;
         });
+        print('Erreur lors de la récupération des questions : ${response.statusCode}');
       }
     } catch (e) {
       setState(() {
         isLoading = false;
+        hasError = true;
       });
       print('Erreur: $e');
     }
@@ -84,51 +101,59 @@ class _HomePageState extends State<HomePage> {
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Level: ${userProgress['level']} | Treasure Pieces: ${userProgress['treasure_pieces']}',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
+          : hasError
+              ? Center(child: Text('Erreur de chargement des questions. Veuillez réessayer.', style: TextStyle(fontSize: 18, color: Colors.red)))
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        'Level: ${userProgress['level']} | Treasure Pieces: ${userProgress['treasure_pieces']}',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Expanded(
+                      child: questions.isEmpty
+                          ? Center(child: Text('Aucune question disponible', style: TextStyle(fontSize: 18, color: Colors.red)))
+                          : ListView.builder(
+                              itemCount: questions.length,
+                              itemBuilder: (context, index) {
+                                final question = questions[index];
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue[100],
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          question['question'] ?? 'Question indisponible',
+                                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                        ),
+                                        SizedBox(height: 10),
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            submitAnswer(
+                                              'Sample Answer',
+                                              question['correct_answer'] ?? '',
+                                            );
+                                          },
+                                          child: Text('Répondre'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: questions.length,
-                    itemBuilder: (context, index) {
-                      final question = questions[index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[100],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                question['question'],
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                              SizedBox(height: 10),
-                              ElevatedButton(
-                                onPressed: () =>
-                                    submitAnswer('Sample Answer', question['correct_answer']),
-                                child: Text('Submit Answer'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
     );
   }
 }
