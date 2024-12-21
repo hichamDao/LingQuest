@@ -26,8 +26,3 @@ chmod +x /usr/local/bin/xvfb-run-chrome
 ENV CHROME_EXECUTABLE="xvfb-run-chrome google-chrome"
 
 
-# Précharger les dépendances Flutter
-RUN flutter precache
-
-# Démarrer Flutter Web avec Chrome headless (sans affichage réel)
-ENTRYPOINT [ "bash", "-c", "flutter run -d chrome || bash" ]
