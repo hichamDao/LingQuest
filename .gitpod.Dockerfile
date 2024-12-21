@@ -1,19 +1,18 @@
-# Utiliser une image de base Gitpod avec des outils pré-installés
 FROM gitpod/workspace-full:latest
 
 # Mise à jour du système
-RUN sudo apt update && sudo apt install -y wget
+RUN apt update && apt install -y wget
 
 # Installer Google Chrome
 RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt --fix-broken install -y && \
+    dpkg -i google-chrome-stable_current_amd64.deb || apt install -f -y && \
     rm google-chrome-stable_current_amd64.deb
 
 # Configurer la variable CHROME_EXECUTABLE pour Flutter
 ENV CHROME_EXECUTABLE=/usr/bin/google-chrome
 
 # Installer Xvfb (serveur X virtuel)
-RUN sudo apt update && sudo apt install -y xvfb
+RUN apt update && apt install -y xvfb
 
 # Créer un script de démarrage pour Xvfb et Chrome
 RUN echo '#!/bin/bash\n\
