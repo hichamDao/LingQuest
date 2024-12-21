@@ -1,28 +1,32 @@
-# Image de base complète pour Gitpod
 FROM gitpod/workspace-full:latest
 
-# Mise à jour du système et installation des outils de base
-RUN apt update && apt install -y wget curl git unzip zip libglu1-mesa
+# Nettoyer le cache APT et mise à jour complète
+RUN rm -rf /var/lib/apt/lists/* && \
+    apt-get update && \
+    apt-get upgrade -y
+
+# Installer les outils nécessaires
+RUN apt-get install -y wget curl git unzip zip libglu1-mesa || \
+    (echo "APT-GET INSTALL FAILED" && cat /var/log/apt/term.log && exit 1)
 
 # Installer Google Chrome
 RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    dpkg -i google-chrome-stable_current_amd64.deb || apt install -f -y && \
+    dpkg -i google-chrome-stable_current_amd64.deb || apt-get install -f -y && \
     rm google-chrome-stable_current_amd64.deb
 
 # Configurer la variable CHROME_EXECUTABLE pour Flutter
 ENV CHROME_EXECUTABLE=/usr/bin/google-chrome
 
-# Installer Xvfb (X virtual framebuffer)
-RUN apt install -y xvfb
+# Installer Xvfb (serveur X virtuel)
+RUN apt-get install -y xvfb
 
-# Créer un script pour exécuter Chrome avec Xvfb
+# Créer un script de démarrage pour Xvfb et Chrome
 RUN echo '#!/bin/bash\n\
 export DISPLAY=:99\n\
 Xvfb :99 -screen 0 1024x768x16 &\n\
 exec "$@"' > /usr/local/bin/xvfb-run-chrome && \
 chmod +x /usr/local/bin/xvfb-run-chrome
 
-# Remplacer l'exécution de Chrome par la commande avec Xvfb
+# Remplacer Chrome par la commande utilisant Xvfb
 ENV CHROME_EXECUTABLE="xvfb-run-chrome google-chrome"
-
 
