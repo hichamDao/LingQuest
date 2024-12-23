@@ -10,6 +10,7 @@ jobs:
     name: Run Android Emulator for ARCore
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
     steps:
       # Étape 1 : Cloner le dépôt
       - name: Checkout repository
@@ -22,53 +23,64 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # Étape 3 : Configurer le SDK Android
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v2
-        with:
-          components: |
-            build-tools;33.0.0
-            platform-tools
-            platforms;android-33
-            emulator
+      # Étape 3 : Installer Android Command-line Tools
+      - name: Install Android Command-line Tools
+        run: |
+          export ANDROID_HOME=$HOME/android-sdk
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          cd $ANDROID_HOME/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O commandlinetools.zip
+          unzip commandlinetools.zip
+          mv cmdline-tools latest
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
 
-      # Étape 4 : Ajouter le chemin de l'émulateur
-      - name: Set PATH for Emulator
-        run: echo "PATH=\$PATH:${ANDROID_HOME}/emulator:${ANDROID_HOME}/tools" >> $GITHUB_ENV
+      # Étape 4 : Accepter les licences Android SDK
+      - name: Accept Android SDK Licenses
+        run: |
+          source $GITHUB_ENV
+          yes | sdkmanager --licenses
 
-      # Étape 5 : Configurer l'AVD (Android Virtual Device)
+      # Étape 5 : Installer les composants nécessaires
+      - name: Install Android SDK Components
+        run: |
+          source $GITHUB_ENV
+          sdkmanager "platform-tools" "platforms;android-33" "system-images;android-33;google_apis;x86_64" "emulator" "build-tools;33.0.0"
 
+      # Étape 6 : Configurer un AVD pour Pixel 4
       - name: Configure AVD
         run: |
+          source $GITHUB_ENV
           echo "hw.camera.back=virtualscene" >> ~/.android/advancedFeatures.ini
           echo "hw.camera.front=emulated" >> ~/.android/advancedFeatures.ini
           echo "ShowDeviceFrame=yes" >> ~/.android/advancedFeatures.ini
-          sdkmanager "system-images;android-33;google_apis;x86_64"
-          echo no | avdmanager create avd --force --name test --package "system-images;android-33;google_apis;x86_64" --device "pixel"
+          avdmanager create avd --force --name pixel4_test --device "pixel_4" --package "system-images;android-33;google_apis;x86_64"
 
-      # Étape 6 : Vérifier la configuration de l'AVD
+      # Étape 7 : Vérifier la configuration de l'AVD
       - name: Verify AVD Configuration
         run: |
-          cat ~/.android/advancedFeatures.ini
+          source $GITHUB_ENV
           avdmanager list avd
 
-      # Étape 7 : Démarrer l'émulateur
+      # Étape 8 : Démarrer l'émulateur
       - name: Start Emulator
         run: |
-          nohup emulator @test -no-window -no-audio -gpu swiftshader_indirect > emulator.log 2>&1 &
+          source $GITHUB_ENV
+          nohup emulator @pixel4_test -no-window -no-audio -gpu swiftshader_indirect > emulator.log 2>&1 &
           adb devices
           adb wait-for-device
           adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
           echo "Emulator is ready"
 
-      # Étape 8 : Installer et exécuter l'application
+      # Étape 9 : Installer et exécuter l'application
       - name: Install and Test APK
         run: |
+          source $GITHUB_ENV
           adb install path/to/your-app.apk
           adb shell am start -n com.example.app/.MainActivity
           adb logcat -d > logcat.txt
 
-      # Étape 9 : Télécharger les journaux
+      # Étape 10 : Télécharger les journaux
       - name: Upload Logs
         uses: actions/upload-artifact@v3
         with:
