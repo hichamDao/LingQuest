@@ -37,6 +37,7 @@ jobs:
         run: echo "PATH=\$PATH:${ANDROID_HOME}/emulator:${ANDROID_HOME}/tools" >> $GITHUB_ENV
 
       # Étape 5 : Configurer l'AVD (Android Virtual Device)
+
       - name: Configure AVD
         run: |
           echo "hw.camera.back=virtualscene" >> ~/.android/advancedFeatures.ini
