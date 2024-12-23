@@ -51,6 +51,8 @@ jobs:
       - name: Configure AVD
         run: |
           source $GITHUB_ENV
+          mkdir -p ~/.android
+          touch ~/.android/advancedFeatures.ini
           echo "hw.camera.back=virtualscene" >> ~/.android/advancedFeatures.ini
           echo "hw.camera.front=emulated" >> ~/.android/advancedFeatures.ini
           echo "ShowDeviceFrame=yes" >> ~/.android/advancedFeatures.ini
