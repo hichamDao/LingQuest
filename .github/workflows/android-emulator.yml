@@ -14,36 +14,41 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-
- # 2. Installation de JDK 17
-      - name: Set up JDK 17
+      - name: Set up Java 17
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
 
-
       - name: Set up Android SDK
         uses: android-actions/setup-android@v2
         with:
-          api-level: 30
-          target: android-30
-          arch: x86_64
-          profile: default
-          emulator-build: default
-          script: sdkmanager --install "system-images;android-30;google_apis;x86_64"
+          components: |
+            build-tools;33.0.0
+            platform-tools
+            platforms;android-33
 
-      - name: Start emulator
+      - name: Configure AVD for Pixel 4
         run: |
           echo "hw.camera.back=virtualscene" >> ~/.android/advancedFeatures.ini
           echo "hw.camera.front=emulated" >> ~/.android/advancedFeatures.ini
           echo "ShowDeviceFrame=yes" >> ~/.android/advancedFeatures.ini
           echo "Pixel2=yes" >> ~/.android/advancedFeatures.ini
-          echo no | avdmanager create avd --force --name test --package "system-images;android-30;google_apis;x86_64" --device "pixel"
-          nohup emulator @test -no-window -no-audio -gpu swiftshader_indirect &
+          echo no | avdmanager create avd --force --name test --package "system-images;android-33;google_apis;x86_64" --device "pixel"
+
+      - name: List AVD devices
+        run: avdmanager list avd
+
+      - name: Start emulator
+        run: |
+          nohup emulator @test -no-window -no-audio -gpu off &
 
       - name: Wait for emulator to boot
-        run: adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
+        run: |
+          adb devices
+          adb wait-for-device
+          adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
+          echo "Emulator booted successfully"
 
       - name: Install APK and run tests
         run: |
