@@ -6,21 +6,23 @@ on:
       - main
 
 jobs:
-  test-emulator:
+  Run Android Emulator for ARCore:
     name: Run Android Emulator for ARCore
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
+      # Étape 1 : Cloner le dépôt
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Java 17
+      # Étape 2 : Installer JDK 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
 
+      # Étape 3 : Configurer le SDK Android
       - name: Set up Android SDK
         uses: android-actions/setup-android@v2
         with:
@@ -28,39 +30,45 @@ jobs:
             build-tools;33.0.0
             platform-tools
             platforms;android-33
+            emulator
 
-      - name: Configure AVD for Pixel 4
+      # Étape 4 : Ajouter le chemin de l'émulateur
+      - name: Set PATH for Emulator
+        run: echo "PATH=\$PATH:${ANDROID_HOME}/emulator:${ANDROID_HOME}/tools" >> $GITHUB_ENV
+
+      # Étape 5 : Configurer l'AVD (Android Virtual Device)
+      - name: Configure AVD
         run: |
           echo "hw.camera.back=virtualscene" >> ~/.android/advancedFeatures.ini
           echo "hw.camera.front=emulated" >> ~/.android/advancedFeatures.ini
           echo "ShowDeviceFrame=yes" >> ~/.android/advancedFeatures.ini
-          echo "Pixel2=yes" >> ~/.android/advancedFeatures.ini
-          echo "hw.ramSize=1024" >> ~/.android/advancedFeatures.ini
-          echo "hw.gpu.enabled=no" >> ~/.android/advancedFeatures.ini
-
           sdkmanager "system-images;android-33;google_apis;x86_64"
           echo no | avdmanager create avd --force --name test --package "system-images;android-33;google_apis;x86_64" --device "pixel"
 
+      # Étape 6 : Vérifier la configuration de l'AVD
       - name: Verify AVD Configuration
         run: |
           cat ~/.android/advancedFeatures.ini
           avdmanager list avd
 
+      # Étape 7 : Démarrer l'émulateur
       - name: Start Emulator
         run: |
-          nohup emulator @test -no-window -no-audio -gpu off &
+          nohup emulator @test -no-window -no-audio -gpu swiftshader_indirect > emulator.log 2>&1 &
           adb devices
           adb wait-for-device
           adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
           echo "Emulator is ready"
 
-      - name: Install and Run APK
+      # Étape 8 : Installer et exécuter l'application
+      - name: Install and Test APK
         run: |
           adb install path/to/your-app.apk
           adb shell am start -n com.example.app/.MainActivity
           adb logcat -d > logcat.txt
 
-      - name: Save Logs
+      # Étape 9 : Télécharger les journaux
+      - name: Upload Logs
         uses: actions/upload-artifact@v3
         with:
           name: emulator-logs
