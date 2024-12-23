@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  Run Android Emulator for ARCore:
+  Run_Android_Emulator_for_ARCore:
     name: Run Android Emulator for ARCore
     runs-on: ubuntu-latest
     timeout-minutes: 30
