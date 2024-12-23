@@ -1,4 +1,4 @@
-name: Android Emulator Test for ARCore
+name: Test ARCore Application
 
 on:
   push:
@@ -6,12 +6,13 @@ on:
       - main
 
 jobs:
-  test:
-    name: Run Android Emulator
+  test-emulator:
+    name: Run Android Emulator for ARCore
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Set up Java 17
@@ -34,24 +35,33 @@ jobs:
           echo "hw.camera.front=emulated" >> ~/.android/advancedFeatures.ini
           echo "ShowDeviceFrame=yes" >> ~/.android/advancedFeatures.ini
           echo "Pixel2=yes" >> ~/.android/advancedFeatures.ini
+          echo "hw.ramSize=1024" >> ~/.android/advancedFeatures.ini
+          echo "hw.gpu.enabled=no" >> ~/.android/advancedFeatures.ini
+
+          sdkmanager "system-images;android-33;google_apis;x86_64"
           echo no | avdmanager create avd --force --name test --package "system-images;android-33;google_apis;x86_64" --device "pixel"
 
-      - name: List AVD devices
-        run: avdmanager list avd
+      - name: Verify AVD Configuration
+        run: |
+          cat ~/.android/advancedFeatures.ini
+          avdmanager list avd
 
-      - name: Start emulator
+      - name: Start Emulator
         run: |
           nohup emulator @test -no-window -no-audio -gpu off &
-
-      - name: Wait for emulator to boot
-        run: |
           adb devices
           adb wait-for-device
           adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
-          echo "Emulator booted successfully"
+          echo "Emulator is ready"
 
-      - name: Install APK and run tests
+      - name: Install and Run APK
         run: |
           adb install path/to/your-app.apk
           adb shell am start -n com.example.app/.MainActivity
           adb logcat -d > logcat.txt
+
+      - name: Save Logs
+        uses: actions/upload-artifact@v3
+        with:
+          name: emulator-logs
+          path: logcat.txt
