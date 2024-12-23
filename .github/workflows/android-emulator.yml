@@ -1,0 +1,49 @@
+name: Android Emulator Test for ARCore
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run Android Emulator
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v2
+        with:
+          api-level: 30
+          target: android-30
+          arch: x86_64
+          profile: default
+          emulator-build: default
+          script: sdkmanager --install "system-images;android-30;google_apis;x86_64"
+
+      - name: Start emulator
+        run: |
+          echo "hw.camera.back=virtualscene" >> ~/.android/advancedFeatures.ini
+          echo "hw.camera.front=emulated" >> ~/.android/advancedFeatures.ini
+          echo "ShowDeviceFrame=yes" >> ~/.android/advancedFeatures.ini
+          echo "Pixel2=yes" >> ~/.android/advancedFeatures.ini
+          echo no | avdmanager create avd --force --name test --package "system-images;android-30;google_apis;x86_64" --device "pixel"
+          nohup emulator @test -no-window -no-audio -gpu swiftshader_indirect &
+
+      - name: Wait for emulator to boot
+        run: adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
+
+      - name: Install APK and run tests
+        run: |
+          adb install path/to/your-app.apk
+          adb shell am start -n com.example.app/.MainActivity
+          adb logcat -d > logcat.txt
