@@ -74,11 +74,11 @@ jobs:
           adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
           echo "Emulator is ready"
 
-      # Étape 9 : Installer et exécuter l'application
+      # Étape 9 : Installer et exécuter l'APK
       - name: Install and Test APK
         run: |
           source $GITHUB_ENV
-          adb install path/to/your-app.apk
+          adb install build/app/outputs/flutter-apk/app-release.apk
           adb shell am start -n com.example.app/.MainActivity
           adb logcat -d > logcat.txt
 
