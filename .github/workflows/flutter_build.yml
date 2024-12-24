@@ -57,9 +57,8 @@ jobs:
           else
             echo "APK not found. Proceeding to build."
           fi
-
       - name: Flutter Clean
-        if: ![ -f build/app/outputs/flutter-apk/app-release.apk ]
+        if: ${{ !exists('build/app/outputs/flutter-apk/app-release.apk') }}
         run: flutter clean
 
       - name: Build APK

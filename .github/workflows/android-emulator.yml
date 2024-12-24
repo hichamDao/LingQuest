@@ -54,15 +54,15 @@ jobs:
       - name: Install Android SDK Components
         run: |
           source $GITHUB_ENV
-          sdkmanager "platform-tools" "platforms;android-33" "system-images;android-33;google_apis;x86_64" "emulator" "build-tools;33.0.0"
+          sdkmanager "platform-tools" "platforms;android-33" "system-images;android-33;google_apis;arm64-v8a" "emulator" "build-tools;33.0.0"
 
      # Étape 6 : Configurer un AVD pour Pixel 4
       - name: Configure AVD
         run: |
           export ANDROID_AVD_HOME=$HOME/.android/avd
           mkdir -p $ANDROID_AVD_HOME
-          sdkmanager "system-images;android-33;google_apis;x86_64"
-          avdmanager create avd --force --name pixel4_test --device "pixel" --package "system-images;android-33;google_apis;x86_64"
+          sdkmanager "system-images;android-33;google_apis;arm64-v8a"
+          avdmanager create avd --force --name pixel4_test --device "pixel" --package "system-images;android-33;google_apis;arm64-v8a"
 
      # Étape 7 : Vérifier la configuration de l'AVD
       - name: Verify AVD Configuration
