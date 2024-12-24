@@ -1,4 +1,4 @@
-name: Test ARCore Application
+name: Run ARCore Emulator
 
 on:
   push:
@@ -6,106 +6,76 @@ on:
       - main
 
 jobs:
-  Run_Android_Emulator_for_ARCore:
-    name: Run Android Emulator for ARCore
+  setup-emulator:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
 
     steps:
-      # Étape 1 : Cloner le dépôt
-      - name: Checkout repository
+      # 1. Checkout du code
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Étape 2 : Installer JDK 17
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      # Étape 3 : Installer Android Command-line Tools
-      - name: Install Android Command-line Tools
+      # 2. Installer Android SDK Command-line Tools
+      - name: Install Android SDK Tools
         run: |
           export ANDROID_HOME=$HOME/android-sdk
           mkdir -p $ANDROID_HOME/cmdline-tools
           cd $ANDROID_HOME/cmdline-tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O commandlinetools.zip
-          unzip commandlinetools.zip
+          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O tools.zip
+          unzip tools.zip
           mv cmdline-tools latest
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-          echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
+          echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator" >> $GITHUB_ENV
 
-      - name: Cache Android SDK
-        uses: actions/cache@v3
-        with:
-          path: $HOME/android-sdk
-          key: ${{ runner.os }}-android-sdk
-          restore-keys: |
-            ${{ runner.os }}-android-sdk
-
-
-      # Étape 4 : Accepter les licences Android SDK
+      # 3. Accepter les licences Android
       - name: Accept Android SDK Licenses
         run: |
           source $GITHUB_ENV
           yes | sdkmanager --licenses
 
-      # Étape 5 : Installer les composants nécessaires
+      # 4. Installer les composants nécessaires pour ARCore
       - name: Install Android SDK Components
         run: |
           source $GITHUB_ENV
-          sdkmanager "platform-tools" "platforms;android-33" "system-images;android-33;google_apis;arm64-v8a" "emulator" "build-tools;33.0.0"
+          sdkmanager "platform-tools" \
+                     "platforms;android-33" \
+                     "system-images;android-33;google_apis_playstore;x86_64" \
+                     "emulator" \
+                     "build-tools;33.0.0"
 
-     # Étape 6 : Configurer un AVD pour Pixel 4
-      - name: Configure AVD
+      # 5. Configurer un AVD pour Pixel 4
+      - name: Create AVD
         run: |
-          export ANDROID_AVD_HOME=$HOME/.android/avd
-          mkdir -p $ANDROID_AVD_HOME
-          sdkmanager "system-images;android-33;google_apis;arm64-v8a"
-          avdmanager create avd --force --name pixel4_test --device "pixel" --package "system-images;android-33;google_apis;arm64-v8a"
+          source $GITHUB_ENV
+          echo "hw.gpu.mode=swiftshader_indirect" >> $HOME/.android/advancedFeatures.ini
+          echo "hw.camera.back=virtualscene" >> $HOME/.android/advancedFeatures.ini
+          avdmanager create avd --force --name pixel4_arcore \
+                                --package "system-images;android-33;google_apis_playstore;x86_64" \
+                                --device "pixel_4"
 
-     # Étape 7 : Vérifier la configuration de l'AVD
-      - name: Verify AVD Configuration
-        run: |
-          avdmanager list avd
-          echo "AVD directory: $ANDROID_AVD_HOME"
-          ls -la $ANDROID_AVD_HOME
-
-     # Étape 8 : Démarrer l'émulateur
+      # 6. Démarrer l'émulateur
       - name: Start Emulator
         run: |
-          export ANDROID_AVD_HOME=$HOME/.android/avd
-          nohup emulator @pixel4_test -no-window -no-audio -gpu swiftshader_indirect > emulator.log 2>&1 &
-          adb devices
+          source $GITHUB_ENV
+          nohup emulator -avd pixel4_arcore -no-window -no-audio -gpu swiftshader_indirect > emulator.log 2>&1 &
           adb wait-for-device
           adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
-          echo "Emulator is ready"
+          echo "Emulator is ready."
 
         continue-on-error: true
 
       - name: Check if Log Exists
-        run: ls -l emulator.log || echo "emulator.log not found"
+        run: ls -l emulator.log || echo "emulator.log not found"     
 
-      # Télécharger les logs même en cas d'échec
+
+ # 7. Vérifier les appareils connectés
+      - name: Verify Emulator
+        run: adb devices
+
+      # 8. Télécharger les journaux de l'émulateur
       - name: Upload Emulator Logs
-        if: always()  # S'assure que cette étape est exécutée même si les autres échouent
+        if: always()  # S'assure que cette étape est exécutée même si les autres échouent     
         uses: actions/upload-artifact@v3
         with:
-          name: emulator-log
+          name: emulator-logs
           path: emulator.log
-
-
-      # Étape 9 : Installer et exécuter l'APK
-      - name: Install and Test APK
-        run: |
-          source $GITHUB_ENV
-          adb install build/app/outputs/flutter-apk/app-release.apk
-          adb shell am start -n com.example.app/.MainActivity
-          adb logcat -d > logcat.txt
-
-      # Étape 10 : Télécharger les journaux
-      - name: Upload Logs
-        uses: actions/upload-artifact@v3
-        with:
-          name: emulator-log
-          path: logcat.txt
