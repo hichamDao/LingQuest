@@ -9,7 +9,7 @@ jobs:
   Run_Android_Emulator_for_ARCore:
     name: Run Android Emulator for ARCore
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       # Étape 1 : Cloner le dépôt
@@ -34,6 +34,15 @@ jobs:
           mv cmdline-tools latest
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
+
+      - name: Cache Android SDK
+        uses: actions/cache@v3
+        with:
+          path: $HOME/android-sdk
+          key: ${{ runner.os }}-android-sdk
+          restore-keys: |
+            ${{ runner.os }}-android-sdk
+
 
       # Étape 4 : Accepter les licences Android SDK
       - name: Accept Android SDK Licenses
@@ -71,7 +80,7 @@ jobs:
           nohup emulator @pixel4_test -no-window -no-audio -gpu swiftshader_indirect -verbose > emulator.log 2>&1 &
           adb devices
           adb wait-for-device
-          adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
+          timeout 5m adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
           echo "Emulator is ready"
 
         continue-on-error: true
@@ -79,11 +88,14 @@ jobs:
       - name: Check if Log Exists
         run: ls -l emulator.log || echo "emulator.log not found"
 
+      # Télécharger les logs même en cas d'échec
       - name: Upload Emulator Logs
+        if: always()  # S'assure que cette étape est exécutée même si les autres échouent
         uses: actions/upload-artifact@v3
         with:
           name: emulator-log
           path: emulator.log
+
 
       # Étape 9 : Installer et exécuter l'APK
       - name: Install and Test APK
@@ -97,5 +109,5 @@ jobs:
       - name: Upload Logs
         uses: actions/upload-artifact@v3
         with:
-          name: emulator-logs
+          name: emulator-log
           path: logcat.txt

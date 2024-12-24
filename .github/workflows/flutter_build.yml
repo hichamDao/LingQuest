@@ -14,20 +14,29 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # 2. Installation de JDK 17
+      # 2. Ajouter le cache pour l'APK
+      - name: Cache Build Output
+        uses: actions/cache@v3
+        with:
+          path: build/app/outputs/flutter-apk/
+          key: ${{ runner.os }}-flutter-apk-${{ hashFiles('pubspec.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-apk-
+
+      # 3. Installation de JDK 17
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # 3. Installation de Flutter
+      # 4. Installation de Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.27.0'
 
-      # 4. Installation d'Android SDK Command-line Tools
+      # 5. Installation d'Android SDK Command-line Tools
       - name: Install Android Command-line Tools
         run: |
           export ANDROID_HOME=$HOME/android-sdk
@@ -39,26 +48,34 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_ENV
 
-      # 5. Accepter les licences Android SDK
+      # 6. Accepter les licences Android SDK
       - name: Accept Android SDK Licenses
         run: yes | sdkmanager --licenses
 
-      # 6. Installer les dépendances Flutter
+      # 7. Installer les dépendances Flutter
       - name: Flutter Pub Get
         run: flutter pub get
 
-      # 7. Nettoyer le projet
+      # 8. Vérifier si une reconstruction est nécessaire
+      - name: Check APK Existence
+        run: |
+          if [ -f build/app/outputs/flutter-apk/app-release.apk ]; then
+            echo "APK already exists. Skipping build."
+            exit 0
+          fi
+
       - name: Flutter Clean
         run: flutter clean
 
-      # 8. Construire l'APK en mode release
+      # 9. Construire l'APK en mode release si nécessaire
       - name: Build APK
         run: flutter build apk --release
 
+      # 10. Lister le contenu du dossier de construction
       - name: List build directory contents
         run: ls -R build/app/outputs/flutter-apk/
 
-      # 9. Télécharger l'APK comme artifact
+      # 11. Télécharger l'APK comme artifact
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v3
         with:
