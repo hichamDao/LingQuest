@@ -47,6 +47,8 @@ jobs:
       - name: Create AVD
         run: |
           source $GITHUB_ENV
+          mkdir -p ~/.android
+          touch ~/.android/advancedFeatures.ini
           echo "hw.gpu.mode=swiftshader_indirect" >> $HOME/.android/advancedFeatures.ini
           echo "hw.camera.back=virtualscene" >> $HOME/.android/advancedFeatures.ini
           avdmanager create avd --force --name pixel4_arcore \
