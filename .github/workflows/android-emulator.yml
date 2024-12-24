@@ -9,7 +9,7 @@ jobs:
   Run_Android_Emulator_for_ARCore:
     name: Run Android Emulator for ARCore
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       # Étape 1 : Cloner le dépôt
@@ -68,11 +68,19 @@ jobs:
       - name: Start Emulator
         run: |
           source $GITHUB_ENV
-          nohup emulator @pixel4_test -no-window -no-audio -gpu swiftshader_indirect > emulator.log 2>&1 &
+          nohup emulator @pixel4_test -no-window -no-audio -gpu swiftshader_indirect -verbose > emulator.log 2>&1 &
           adb devices
           adb wait-for-device
           adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
           echo "Emulator is ready"
+
+        continue-on-error: true
+
+      - name: Upload Emulator Logs
+        uses: actions/upload-artifact@v3
+        with:
+          name: emulator-log
+          path: emulator.log
 
       # Étape 9 : Installer et exécuter l'APK
       - name: Install and Test APK
