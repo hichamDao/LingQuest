@@ -9,7 +9,7 @@ jobs:
   Run_Android_Emulator_for_ARCore:
     name: Run Android Emulator for ARCore
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
 
     steps:
       # Étape 1 : Cloner le dépôt
@@ -75,6 +75,9 @@ jobs:
           echo "Emulator is ready"
 
         continue-on-error: true
+
+      - name: Check if Log Exists
+        run: ls -l emulator.log || echo "emulator.log not found"
 
       - name: Upload Emulator Logs
         uses: actions/upload-artifact@v3
