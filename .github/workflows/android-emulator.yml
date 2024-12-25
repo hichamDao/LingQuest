@@ -11,11 +11,9 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      # 1. Checkout du code
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # 2. Installer Android SDK Command-line Tools
       - name: Install Android SDK Tools
         run: |
           export ANDROID_HOME=$HOME/android-sdk
@@ -27,13 +25,11 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator" >> $GITHUB_ENV
 
-      # 3. Accepter les licences Android
       - name: Accept Android SDK Licenses
         run: |
           source $GITHUB_ENV
           yes | sdkmanager --licenses
 
-      # 4. Installer les composants nécessaires pour ARCore
       - name: Install Android SDK Components
         run: |
           source $GITHUB_ENV
@@ -43,19 +39,28 @@ jobs:
                      "emulator" \
                      "build-tools;33.0.0"
 
-      # 5. Configurer un AVD pour Pixel 4
+      - name: Set up AVD Home
+        run: |
+          export ANDROID_AVD_HOME=$HOME/.android/avd
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> $GITHUB_ENV
+
       - name: Create AVD
         run: |
           source $GITHUB_ENV
-          mkdir -p ~/.android
-          touch ~/.android/advancedFeatures.ini
-          echo "hw.gpu.mode=swiftshader_indirect" >> $HOME/.android/advancedFeatures.ini
-          echo "hw.camera.back=virtualscene" >> $HOME/.android/advancedFeatures.ini
           avdmanager create avd --force --name pixel4_arcore \
                                 --package "system-images;android-33;google_apis_playstore;x86_64" \
                                 --device "pixel_4"
 
-      # 6. Démarrer l'émulateur
+      - name: Check AVD List
+        run: |
+          source $GITHUB_ENV
+          avdmanager list avd
+
+      - name: Debug AVD Files
+        run: |
+          source $GITHUB_ENV
+          ls -R $HOME/.android/avd
+
       - name: Start Emulator
         run: |
           source $GITHUB_ENV
@@ -67,16 +72,13 @@ jobs:
         continue-on-error: true
 
       - name: Check if Log Exists
-        run: ls -l emulator.log || echo "emulator.log not found"     
+        run: ls -l emulator.log || echo "emulator.log not found"
 
-
- # 7. Vérifier les appareils connectés
       - name: Verify Emulator
         run: adb devices
 
-      # 8. Télécharger les journaux de l'émulateur
       - name: Upload Emulator Logs
-        if: always()  # S'assure que cette étape est exécutée même si les autres échouent     
+        if: always()
         uses: actions/upload-artifact@v3
         with:
           name: emulator-logs
