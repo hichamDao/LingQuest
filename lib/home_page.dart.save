@@ -20,15 +20,13 @@ class _HomePageState extends State<HomePage> {
   List<bool> isPressed = List.filled(12, false);
   int hearts = 5;
   int gold = 0;
-  int userProgress = 0;
-  int progress = 0; 
+  int progress = 0;
   Timer? heartRegenTimer;
   DateTime? lastLostHeartTime;
   Duration regenDuration = Duration(hours: 3);
   int? userId;
   String? username;
   bool isTreasureOpening = false;
-  
 
   List<int> treasureMilestones = [3, 7, 12];  // Niveaux de coffres
   int treasureCount = 0;
@@ -139,7 +137,6 @@ class _HomePageState extends State<HomePage> {
 
 
   Future<void> fetchUserProgress() async {
-  try {
     final response = await http.get(
       Uri.parse('https://192.168.1.35:5000/get-user-progress/$userId'),
     );
@@ -147,18 +144,12 @@ class _HomePageState extends State<HomePage> {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       setState(() {
-          gold = data['gold'];
+        gold = data['gold'];
         hearts = data['hearts'];
-        userProgress = data['progress'] ?? '0%';
+        progress = data['progress'];
       });
-    } else {
-      print('Failed to fetch user progress: ${response.statusCode}');
     }
-  } catch (e) {
-    print('Error fetching user progress: $e');
   }
-}
-
  /* void rechargeHearts() {
     if (gold >= 300 && hearts < 5) {
       setState(() {
@@ -177,7 +168,13 @@ class _HomePageState extends State<HomePage> {
   }
   */
 
-  Future<void> checkLoginStatus() async {
+  void login(int id) async {
+    setState(() {
+      userId = id;
+    });
+}
+
+void checkLoginStatus() async {
   final prefs = await SharedPreferences.getInstance();
   int? savedUserId = prefs.getInt('userId');
 
@@ -186,42 +183,20 @@ class _HomePageState extends State<HomePage> {
       userId = savedUserId;
     });
 
-    try {
-      // Récupération des informations de l'utilisateur connecté
-      final response = await http.get(
-        Uri.parse('https://192.168.1.35:5000/get-user-info/$userId'),
-      );
+    // Récupération des informations de l'utilisateur connecté
+    final response = await http.get(
+      Uri.parse('https://192.168.1.35:5000/get-user-info/$userId'),
+    );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          username = data['username'] ?? 'Utilisateur';
-        });
-
-        // Récupérer les progrès de l'utilisateur
-        await fetchUserProgress();
-      } else {
-        print('Failed to fetch user info: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error fetching user info: $e');
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        username = data['username'];
+      });
+      await fetchUserProgress();
     }
   }
 }
-
-void login(int id) async {
-  // Sauvegarde l'identifiant utilisateur et met à jour l'état
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setInt('userId', id);
-
-  setState(() {
-    userId = id;
-  });
-
-  // Récupère les informations de l'utilisateur connecté
-  await checkLoginStatus();
-}
-
 
   void logout() async {
     setState(() {
@@ -450,12 +425,6 @@ final List<Map<String, String>> pirateThemes = [
                       ),
                     ),
                     PopupMenuItem(
-      child: ListTile(
-        leading: Icon(Icons.show_chart),
-        title: Text('Progrès : ${userProgress ?? 'Non disponible'}'),
-      ),
-    ),
-                    PopupMenuItem(
                       child: ListTile(
                         leading: Icon(Icons.logout),
                         title: Text('Déconnexion'),
@@ -546,130 +515,117 @@ final List<Map<String, String>> pirateThemes = [
           padding: EdgeInsets.all(20.0),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 1, // Une seule colonne (un bouton par ligne)
-            mainAxisSpacing: 20.0, // Espace vertical entre les boutons
-            childAspectRatio: 3, // Largeur pour inclure image + bouton
+            mainAxisSpacing: 10.0, // Espace vertical entre les boutons
+            childAspectRatio: 1, // Largeur plus grande pour l'espacement horizontal
           ),
           itemCount: lessons.length, // Nombre total de boutons (leçons)
           itemBuilder: (context, index) {
-            // Déterminer l'image à afficher (si applicable)
-            String? imagePath;
-            if (index == 0) {
-              imagePath = 'assets/images/treasure_closed.png'; // Image pour leçon 1
-            } else if (index == 3) {
-              imagePath = 'assets/images/treasure_closed.png'; // Image pour leçon 4
-            } else if (index == 7) {
-              imagePath = 'assets/images/treasure_closed.png'; // Image pour leçon 8
-            } else if (index == 11) {
-              imagePath = 'assets/images/treasure_closed.png'; // Image pour leçon 12
-            }
+            // Déterminer la position en pixels pour alignLeft
+            double horizontalPadding = index % 2 == 0 ? 30.0 : 200.0;
+            int questionCount = (attempts[index] == 1) ? 5 : 7;
 
-            // Déterminer l'alignement du bouton
-            bool alignLeft = index % 2 == 0;
-            double horizontalPadding = alignLeft ? 30.0 : 200.0;
+            // Images spécifiques pour les leçons
+            final Map<int, String> specialImages = {
+              0: 'assets/images/treasure_closed.png', // Image pour leçon 1
+              3: 'assets/images/treasure_closed.png', // Image pour leçon 4
+              7: 'assets/images/treasure_closed.png', // Image pour leçon 8
+              11: 'assets/images/treasure_closed.png', // Image pour leçon 12
+            };
 
-            return Row(
-              mainAxisAlignment:
-                  alignLeft ? MainAxisAlignment.start : MainAxisAlignment.end,
-              children: [
-                if (imagePath != null && alignLeft) ...[
-                  // Si l'image est alignée à gauche
-                  Image.asset(
-                    imagePath,
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.contain,
-                  ),
-                  SizedBox(width: 20), // Espacement entre l'image et le bouton
-                ],
-                GestureDetector(
-                  onTapDown: (_) => onButtonPress(index, true),
-                  onTapUp: (_) {
-                    Future.delayed(Duration(milliseconds: 300), () {
-                      onButtonPress(index, false);
-                      if (userId != null && hearts > 0) {
-                        showStartLessonPopup(context, index + 1, (attempts[index] == 1) ? 5 : 7); // Popup avant quiz
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              "Veuillez vous connecter ou attendre la régénération.",
+            return Padding(
+              padding: EdgeInsets.only(left: horizontalPadding, right: 30.0),
+              child: Column(
+                children: [
+                  if (specialImages.containsKey(index)) // Vérifier si une image doit être affichée
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 20.0),
+                      child: Image.asset(
+                        specialImages[index]!, // Chemin de l'image
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  GestureDetector(
+                    onTapDown: (_) => onButtonPress(index, true),
+                    onTapUp: (_) {
+                      Future.delayed(Duration(milliseconds: 300), () {
+                        onButtonPress(index, false);
+                        if (userId != null && hearts > 0) {
+                          showStartLessonPopup(context, index + 1, questionCount); // Afficher la popup avant de démarrer le quiz
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                "Veuillez vous connecter ou attendre la régénération.",
+                              ),
                             ),
-                          ),
-                        );
-                      }
-                    });
-                  },
-                  onTapCancel: () => onButtonPress(index, false),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          // Cercle de progression
-                          SizedBox(
-                            width: 80,
-                            height: 80,
-                            child: CircularProgressIndicator(
-                              value: progressLevels[index],
-                              strokeWidth: 8,
-                              color: Colors.blue,
-                              backgroundColor: Colors.grey[300],
+                          );
+                        }
+                      });
+                    },
+                    onTapCancel: () => onButtonPress(index, false),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            // Cercle de progression
+                            SizedBox(
+                              width: 80,
+                              height: 80,
+                              child: CircularProgressIndicator(
+                                value: progressLevels[index],
+                                strokeWidth: 8,
+                                color: Colors.blue,
+                                backgroundColor: Colors.grey[300],
+                              ),
                             ),
-                          ),
-                          // Bouton circulaire
-                          AnimatedContainer(
-                            duration: Duration(milliseconds: 300),
-                            width: isPressed[index] ? 65 : 70,
-                            height: isPressed[index] ? 65 : 70,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.blue,
-                              boxShadow: isPressed[index]
-                                  ? [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.4),
-                                        spreadRadius: 3,
-                                        blurRadius: 12,
-                                      ),
-                                    ]
-                                  : [],
-                            ),
-                            child: Center(
-                              child: Text(
-                                (index + 1).toString(),
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
+                            // Bouton circulaire
+                            AnimatedContainer(
+                              duration: Duration(milliseconds: 300),
+                              width: isPressed[index] ? 65 : 70,
+                              height: isPressed[index] ? 65 : 70,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.blue,
+                                boxShadow: isPressed[index]
+                                    ? [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.4),
+                                          spreadRadius: 3,
+                                          blurRadius: 12,
+                                        ),
+                                      ]
+                                    : [],
+                              ),
+                              child: Center(
+                                child: Text(
+                                  (index + 1).toString(),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        lessons[index]['title']!,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          ],
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-                if (imagePath != null && !alignLeft) ...[
-                  // Si l'image est alignée à droite
-                  SizedBox(width: 20), // Espacement entre le bouton et l'image
-                  Image.asset(
-                    imagePath,
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.contain,
+                        SizedBox(height: 8),
+                        Text(
+                          lessons[index]['title']!,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              ],
+              ),
             );
           },
         ),

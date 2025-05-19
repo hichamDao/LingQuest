@@ -14,7 +14,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _login() async {
     final response = await http.post(
-      Uri.parse('http://192.168.1.35:5000/login'),  
+      Uri.parse('https://192.168.1.35:5000/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'username': _usernameController.text,
@@ -25,7 +25,7 @@ class _LoginPageState extends State<LoginPage> {
     final data = jsonDecode(response.body);
 
     if (response.statusCode == 200 && data['success']) {
-      Navigator.pop(context, data['user_id']);  // Retourne l'user_id à la page d'accueil
+      Navigator.pop(context, data['id']);  // Retourne l'user id à la page d'accueil
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(data['message'] ?? 'Erreur de connexion')),

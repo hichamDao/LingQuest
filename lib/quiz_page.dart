@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class QuizPage extends StatefulWidget {
@@ -24,6 +25,52 @@ class _QuizPageState extends State<QuizPage> {
   int correctAnswers = 0;
   bool isLoading = true;
   bool hasError = false;
+  int xp = 0;
+
+// Appelée après chaque exercice
+void onExerciseCompleted(int lessonIndex, int exerciseIndex, bool isLastExercise) {
+  int earnedXp = isLastExercise ? 20 : 10;  // 20 XP pour le dernier exercice
+  xp += earnedXp;
+
+  // Enregistrer l'XP dans SharedPreferences
+  saveXp();
+
+  // Afficher la popup
+  showXpDialog(context, earnedXp);
+}
+
+// Fonction pour sauvegarder l'XP
+Future<void> saveXp() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setInt('xp', xp);
+}
+
+// Affiche la popup d'XP
+void showXpDialog(BuildContext context, int earnedXp) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Exercice terminé !'),
+        content: Text('Tu as gagné $earnedXp XP. Continue comme ça !'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();  // Fermer la popup
+            },
+            child: Text('OK'),
+          ),
+        ],
+      );
+    },
+  );
+}
+void onQuizAnswered(bool isCorrect, int exerciseIndex, int totalExercises) {
+  if (isCorrect) {
+    bool isLastExercise = (exerciseIndex == totalExercises - 1);
+    onExerciseCompleted(widget.lessonId, exerciseIndex, isLastExercise);
+  }
+}
 
   List<Map<String, dynamic>> questions = [];  // Modification ici (String -> dynamic)
 
@@ -35,7 +82,7 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   Future<void> initUser() async {
-    final url = Uri.parse('http://192.168.1.35:5000/init-user/${widget.userId}');
+    final url = Uri.parse('https://192.168.1.35:5000/init-user/${widget.userId}');
     final response = await http.post(url);
 
     if (response.statusCode == 200) {
@@ -46,7 +93,7 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   Future<void> fetchQuestions() async {
-    final url = Uri.parse('http://192.168.1.35:5000/get-quiz/${widget.lessonId}');
+    final url = Uri.parse('https://192.168.1.35:5000/get-quiz/${widget.lessonId}');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -76,7 +123,7 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   Future<void> sendQuizResult(double score) async {
-    final url = Uri.parse('http://192.168.1.35:5000/quiz-result/');
+    final url = Uri.parse('https://192.168.1.35:5000/quiz-result/');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -178,3 +225,4 @@ class _QuizPageState extends State<QuizPage> {
     );
   }
 }
+
