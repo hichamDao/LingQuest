@@ -46,7 +46,7 @@ jobs:
       # Étape 8: Upload de l'APK comme artifact GitHub
       - name: Upload APK Artifact
         if: success()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
