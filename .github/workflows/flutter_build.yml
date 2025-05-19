@@ -1,4 +1,12 @@
-build:
+name: Flutter Build APK
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -30,7 +38,6 @@ build:
           mv cmdline-tools latest
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_ENV
-
       # 5. Accepter les licences Android SDK
       - name: Accept Android SDK Licenses
         run: yes | sdkmanager --licenses
