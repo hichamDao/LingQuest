@@ -3,45 +3,49 @@ name: Flutter Build APK
 on:
   push:
     branches:
-      - main  # Déclenche le workflow sur chaque push vers la branche principale.
+      - main  # Déclenche le workflow sur push vers la branche principale
 
 jobs:
   build:
     name: Build Flutter APK
-    runs-on: ubuntu-latest  # Utilise l'environnement Ubuntu.
+    runs-on: ubuntu-latest
 
     steps:
-      # Étape 1: Récupérer le code source
-      - name: Checkout Code
+      # Étape 1: Récupération du code source
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      # Étape 2: Configurer Flutter
+      # Étape 2: Configuration de Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.27.0"  # Spécifiez votre version Flutter
+          flutter-version: "3.27.0"
 
-      # Étape 3: Accepter les licences SDK Android
+      # Étape 3: Accepter les licences Android SDK
       - name: Accept Android SDK Licenses
-        run: |
-          yes | sdkmanager --licenses || true
+        run: yes | sdkmanager --licenses || true
         env:
-          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64  # Assurez-vous que Java 17 est configuré.
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
 
       # Étape 4: Installer les dépendances Flutter
       - name: Flutter Pub Get
         run: flutter pub get
 
-      # Étape 5: Nettoyer le projet
+      # Étape 5: Nettoyage du projet
       - name: Flutter Clean
         run: flutter clean
 
-      # Étape 6: Construire l'APK
+      # Étape 6: Compilation de l'APK en mode release
       - name: Build APK
         run: flutter build apk --release
 
-      # Étape 7: Upload de l'APK en tant qu'artifact
+      # Étape 7: Vérification de l'APK généré
+      - name: Debug APK Path
+        run: ls -alh build/app/outputs/flutter-apk
+
+      # Étape 8: Upload de l'APK comme artifact GitHub
       - name: Upload APK Artifact
+        if: success()
         uses: actions/upload-artifact@v3
         with:
           name: release-apk
